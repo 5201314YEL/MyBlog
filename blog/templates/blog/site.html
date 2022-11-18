@@ -1,0 +1,32 @@
+{% extends 'blog/base.html' %}
+{% load static %}
+
+{% block content %}
+    <ul class="media-list">
+        {% for article_obj in article_list %}
+            <li class="media">
+                <h4 class="media-heading"><a href="/blog/{{ username }}/article/{{ article_obj.pk }}">{{ article_obj.title }}</a></h4>
+                <div class="media-left">
+                    <a href="#">
+                        <img class="media-object" src="/blog/media/{{ article_obj.blog.userinfo.avatar }}"
+                             alt="..." height="60px" width="60px">
+                    </a>
+                </div>
+                <div class="media-body">
+                    {{ article_obj.desc }}
+                </div>
+                <div class="pull-right" style="margin-right: 30px">
+                    <span>posted</span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+                    <span>@&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>
+                    <span>发布于{{ article_obj.create_time|date:'Y-m-d' }}</span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+                    <span><img src="{% static 'img/up.png' %}" alt="" width="20px"
+                               height="20px">{{ article_obj.comment_num }}</span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+                    <span><img src="{% static 'img/comment.png' %}" alt="" height="20px"
+                               width="20px">{{ article_obj.up_num }}</span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+                    <span><a href="#">编辑</a></span>
+                </div>
+            </li>
+            <br><br>
+        {% endfor %}
+    </ul>
+{% endblock %}

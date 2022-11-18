@@ -1,0 +1,27 @@
+{% extends 'backend/base.html' %}
+{% block article %}
+    文章添加页面
+    <h3>添加文章</h3>
+    {#    直接利用form表单添加数据#}
+    <form action="" method="post">
+        <p>标题</p>
+        <div>
+            <input type="text" name="title" class="form-control">
+        </div>
+        <p>内容</p>
+        <textarea name="content" id="id_content" cols="30" rows="10">
+        </textarea>
+        <p>分类</p>
+        <div>
+            {% for category in category_list %}
+                <input type="radio" value="{{ category.pk }}" name="category">{{ category.name }}
+            {% endfor %}
+        </div>
+        <p>标签</p>
+        {% for tag in tag_list %}
+            <input type="checkbox" value="{{ tag.pk }}" name="tag">{{ tag.name }}
+        {% endfor %}
+        <br><input type="submit" class="btn btn-success">
+        {#富文本编辑器#}
+    </form>
+{% endblock %}

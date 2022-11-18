@@ -1,0 +1,189 @@
+{% extends 'blog/base.html' %}
+{% block css %}
+    {% load static %}
+    <style>
+        #div_digg {
+            float: right;
+            margin-bottom: 10px;
+            margin-right: 30px;
+            font-size: 12px;
+            width: 125px;
+            text-align: center;
+            margin-top: 10px;
+        }
+
+        .diggit {
+            float: left;
+            width: 46px;
+            height: 52px;
+            background: url({% static 'img/upup.gif' %}) no-repeat;
+            text-align: center;
+            cursor: pointer;
+            margin-top: 2px;
+            padding-top: 5px;
+        }
+
+        .buryit {
+            float: right;
+            margin-left: 20px;
+            width: 46px;
+            height: 52px;
+            background: url({% static 'img/downdown.gif' %}) no-repeat;
+            text-align: center;
+            cursor: pointer;
+            margin-top: 2px;
+            padding-top: 5px;
+        }
+
+        .clear {
+            clear: both;
+        }
+    </style>
+{% endblock %}
+{% block content %}
+    <h1>{{ article_boj.title }}</h1>
+    <div>
+        {{ article_boj.content|safe }}
+    </div>
+    {#    点赞点踩图标样式开始#}
+    <div class="clearfix">
+        <div id="div_digg">
+            <div class="diggit action">
+                <span class="diggnum" id="digg_count">0</span>
+            </div>
+            <div class="buryit action">
+                <span class="burynum" id="bury_count">0</span>
+            </div>
+            <div class="clear"></div>
+            <div class="diggword" id="digg_tips">
+            </div>
+        </div>
+    </div>
+    {#    点赞点踩图标样式结束#}
+    {#    评论内容#}
+    <div>
+        <ul class="list-group">
+            {% for comment in comment_list %}
+            <li class="list-group-item">
+                <span style="font-size: 20px;color: red">{{ forloop.counter }}楼</span>
+                <span style="font-size: 15px;color: green">{{ comment.comment_time|date:'Y-m-d h:i:s' }}</span>
+                <span style="font-size: 15px;color: blue">{{ comment.user.username }}</span>
+                <span> <a href="" class="pull-right" style="margin-right: 10px; font-size: 20px">引用</a></span>
+                <span> <a class="pull-right reply" username="{{ comment.user.username }}" comment_id = "{{ comment.pk }}" style="margin-right: 20px; font-size: 20px">回复</a></span>
+                <div style="font-size: 18px;color: green">
+{#                    判断当前评论是否是子评论，如果是，需要渲染对应的评论姓名#}
+                    {% if comment.parent_id %}
+                        <p>@{{ comment.parent.user.username }}</p>
+                    {% endif %}
+                    {{ comment.content }}
+                </div>
+            </li>
+        </ul>
+    {% endfor %}
+    </div>
+    {#  文章评论开始  #}
+    {% if request.user.is_authenticated %}
+        <div>
+            <p style="font-size: 25px;color: green">发表评论</p>
+            <div>
+                <textarea name="comment" id="id_comment" cols="60" rows="10"></textarea>
+            </div>
+            <button class="btn btn-success" id="id_submit">发布评论</button>
+            <span style="color: red" id="error"></span>
+        </div>
+    {% else %}
+        <li><a href="{% url 'register' %}">注册</a></li>
+        <li><a href="{% url 'login' %}">登录</a></li>
+    {% endif %}
+    {#  文章评论结束  #}
+{% endblock %}
+{% block js %}
+    <script>
+		$ ( '.action' ).click ( function () {
+			{#alert($(this).hasClass('diggit'))#}
+{#            点赞点击事件#}
+			let isUp = $ ( this ).hasClass ( 'diggit' )
+			let $div = $ ( this )
+			$.ajax ( {
+						 url : '/blog/up_or_down/' ,
+						 type : 'post' ,
+						 data : {
+							 'article_id' : '{{ article_boj.pk }}' ,
+							 'is_up' : isUp ,
+							 'csrfmiddlewaretoken' : '{{ csrf_token }}'
+						 } ,
+						 success : function ( args ) {
+							 if ( args.code === 1000 ) {
+								 alert ( '感谢您的点赞' )
+								 let oldNum = $div.children ().text ();
+								 $div.children ().text ( Number ( oldNum ) + 1 )
+							 }
+							 else if ( args.code === 1001 ) {
+								 alert ( args.msg )
+							 }
+							 else if ( args.code === 1002 ) {
+								 alert ( args.msg )
+							 }
+							 else {
+								 alert ( args.msg )
+							 }
+						 }
+					 } )
+		} )
+		{#用户点击按钮，发表评论#}
+        {#设置一个全局变量parent_id#}
+        let parent_id = null;
+		$ ( '#id_submit' ).click ( function () {
+			let content = $ ( '#id_comment' ).val ()
+            {#判断当前内容是否是子评论， 如果是，将@username去除#}
+            if(parent_id){
+			{#	先找到\n对应的索引值，进行切片#}
+                let indexNum = content.indexOf('\n')+1;
+				{#将indexNum之前的内容全部切除#}
+				content = content.slice(indexNum);
+
+            }
+			$.ajax ( {
+						 url : '/blog/comment/' ,
+						 type : 'post' ,
+						 data : {
+							 'article_id' : '{{ article_boj.pk }}' ,
+							 'content' : content ,
+                             'parent_id':parent_id,
+							 'csrfmiddlewaretoken' : '{{ csrf_token }}' ,
+						 } ,
+						 success : function ( args ) {
+							 {#alert ( args )#}
+							 if ( args.code === 1000 ) {
+								 $ ( '#error' ).text ( args.msg )
+								 {#    将评论框里面的内容的清空#}
+								 $ ( '#id_comment' ).val( '' )
+								 {#    临时渲染评论#}
+								 let username = '{{ request.user.username }}'
+								 let tmp =`
+                                           <ul class="list-group">
+                                               <li class="list-group-item">
+                                               <span>${username}</span>
+                                               <div>
+                                                    ${content}
+                                               </div>
+                                               </li>
+                                           </ul>
+                                          `
+								 {#    将生成好的标签添加到ul标签内#}
+								 $ ( '.list-group' ).append ( tmp )
+                                 parent_id = null
+							 }
+						 }
+					 } )
+		} )
+    {#    给回复按钮绑定点击事件#}
+        $('.reply').click(function (  ){
+		{#	需要评论对应的评论人姓名， 评论的主键值#}
+            let comment_username = $(this).attr('username')
+            parent_id = $(this).attr('comment_id');
+			{#alert(parent_id)#}
+            $('#id_comment').val('@'+comment_username+'\n').focus()
+        })
+    </script>
+{% endblock %}
